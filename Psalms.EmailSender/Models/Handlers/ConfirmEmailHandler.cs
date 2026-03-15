@@ -8,7 +8,7 @@ public class ConfirmEmailHandler(IEmailService service) : IRequestHandler<Confir
 {
     public async Task<Unit> Handle(ConfirmEmailCommand request, CancellationToken cancellationToken)
     {
-        await service.ConfirmAndExecuteAsync(request.Token);
+        await service.ConfirmAndExecuteAsync(request.Token, cancellationToken);
 
         return Unit.Value;
     }

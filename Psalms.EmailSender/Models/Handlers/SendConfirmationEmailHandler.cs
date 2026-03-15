@@ -21,10 +21,11 @@ public class SendConfirmationEmailHandler(IEmailService service, IEmailTemplateR
             (
                 request.Command,
                 request.Email,
-                template
+                template,
+                request.TokenExpires
             );
 
-        await service.SendEmailConfirmationAsync(values);
+        await service.SendEmailConfirmationAsync(values, cancellationToken);
 
         return Unit.Value;
     }

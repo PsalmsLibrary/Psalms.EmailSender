@@ -24,7 +24,7 @@ public partial class EmailService(
     #endregion
 
     #region IEmailService Implementation
-    public async Task SendEmailConfirmationAsync(EmailConfirmationValues values)
+    public async Task SendEmailConfirmationAsync(EmailConfirmationValues values, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(values);
         ArgumentNullException.ThrowIfNull(values.Command);
@@ -44,25 +44,25 @@ public partial class EmailService(
             new DistributedCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = values.Expires
-            });
+            }, ct);
 
         var confirmationLink =
             $"{config["FRONTEND_URL"]}/{values.EmailConfiguration.FrontEndPage}?token={token}";
 
-        var html = (await generator.GenerateHtmlAsync(values.EmailConfiguration.TemplatePath, values.EmailConfiguration.EmailType))
+        var html = (await generator.GenerateHtmlAsync(values.EmailConfiguration.TemplatePath, values.EmailConfiguration.EmailType, ct))
             .Replace("{confirmationLink}", confirmationLink);
 
-        await SendAsync(values.Email, values.EmailConfiguration.Subject, html);
+        await SendAsync(values.Email, values.EmailConfiguration.Subject, html, ct);
     }
 
-    public async Task<CommandModel> ConfirmEmailAsync(string token)
+    public async Task<CommandModel> ConfirmEmailAsync(string token, CancellationToken ct)
     {
-        var json = await cache.GetStringAsync(token);
+        var json = await cache.GetStringAsync(token, ct);
 
         if (string.IsNullOrWhiteSpace(json))
             throw new KeyNotFoundException("Token inválido ou expirado.");
 
-        await cache.RemoveAsync(token);
+        await cache.RemoveAsync(token, ct);
 
         var data = JsonSerializer.Deserialize<EmailTokenData>(json, JsonOptions)
             ?? throw new InvalidOperationException("Dados do token inválidos.");
@@ -73,9 +73,9 @@ public partial class EmailService(
         return new CommandModel(type, data.CommandJson);
     }
 
-    public async Task ConfirmAndExecuteAsync(string token)
+    public async Task ConfirmAndExecuteAsync(string token, CancellationToken ct)
     {
-        var commandModel = await ConfirmEmailAsync(token);
+        var commandModel = await ConfirmEmailAsync(token, ct);
 
         var command = JsonSerializer.Deserialize(
             commandModel.JsonCommand,
@@ -84,10 +84,10 @@ public partial class EmailService(
         ) as IRequest
             ?? throw new InvalidOperationException("Comando inválido.");
 
-        await mediator.Send(command);
+        await mediator.Send(command, ct);
     }
 
-    public async Task SendAsync(string to, string subject, string html)
+    public async Task SendAsync(string to, string subject, string html, CancellationToken ct)
     {
         var message = new MimeMessage();
 
@@ -107,19 +107,21 @@ public partial class EmailService(
             await smtp.ConnectAsync(
                 config["Email:Host"],
                 int.Parse(config["Email:Port"]!),
-                SecureSocketOptions.StartTls
+                SecureSocketOptions.StartTls,
+                ct
             );
 
             await smtp.AuthenticateAsync(
                 config["Admin:Email"],
-                config["Email:Password"]
+                config["Email:Password"],
+                ct
             );
 
-            await smtp.SendAsync(message);
+            await smtp.SendAsync(message, ct);
         }
         finally
         {
-            await smtp.DisconnectAsync(true);
+            await smtp.DisconnectAsync(true, ct);
         }
     }
     #endregion

@@ -2,7 +2,7 @@
 
 public class EmailHtmlGenerator : IEmailHtmlGenerator
 {
-    public async Task<string> GenerateHtmlAsync(string path, string type)
+    public async Task<string> GenerateHtmlAsync(string path, string type, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(path))
             throw new ArgumentException("O caminho do template não pode ser nulo ou vazio.", nameof(path));
@@ -10,7 +10,7 @@ public class EmailHtmlGenerator : IEmailHtmlGenerator
         if (string.IsNullOrWhiteSpace(type))
             throw new ArgumentException("O tipo do template não pode ser nulo ou vazio.", nameof(type));
 
-        return await File.ReadAllTextAsync($"{path}/{type}.html");
+        return await File.ReadAllTextAsync($"{path}/{type}.html", ct);
     }
 }
 
@@ -28,5 +28,5 @@ public interface IEmailHtmlGenerator
     /// <param name="path"></param>
     /// <param name="type"></param>
     /// <returns></returns>
-    Task<string> GenerateHtmlAsync(string path, string type);
+    Task<string> GenerateHtmlAsync(string path, string type, CancellationToken ct);
 }
