@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Psalms.EmailSender/Psalms.EmailSender.csproj" Id="2c60a586-b580-4852-8110-c3e10a65efd3" />
+  <Project Path="WebApplication1/WebApplication1.csproj" Id="7f54b4de-a128-4bc8-a8bd-94aaadbbf22c" />
+</Solution>
